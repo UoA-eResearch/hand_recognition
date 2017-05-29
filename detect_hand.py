@@ -6,6 +6,16 @@ cap = cv2.VideoCapture(0)
 lo = np.array([0,130,101])
 hi = np.array([198,155,148])
 
+version = cv2.__version__.split('.')[0]
+
+# Wrapper function to make versions 2 and 3 behave the same
+def findContours(img):
+  if version is '3':
+    image, contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+  elif version is '2':
+    contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+  return contours, hierarchy
+
 def get_largest_contour_and_children(contoursMatrix, hierarchy):
   maxA = 0
   maxCi = 0
@@ -31,13 +41,16 @@ def get_distance_between_pts(a, b):
 
 while(1):
     ret, frame = cap.read()
+    if frame is None:
+      print("No image data")
+      break
     # Convert to Y,Cr,Cb color space
-    img = cv2.cvtColor(frame, cv2.COLOR_BGR2YCrCb)
+    img = cv2.cvtColor(frame, cv2.COLOR_BGR2YCR_CB)
     # Adaptive threshold
     ret, skin = cv2.threshold(img[:,:,1], 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
     # Crop out skin areas
 #    skin = cv2.inRange(img, lo, hi)
-    contoursImage, contoursMatrix, hierarchy = cv2.findContours(skin, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contoursMatrix, hierarchy = findContours(skin)
     cnt, largestContourWithChildren = get_largest_contour_and_children(contoursMatrix, hierarchy)
     
     rect = cv2.minAreaRect(cnt)
