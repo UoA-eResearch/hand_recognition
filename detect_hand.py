@@ -60,13 +60,11 @@ def heron(a, b, c):
   s = (a + b + c) / 2
   return (s*(s-a)*(s-b)*(s-c)) ** 0.5
 
-while(1):
-    ret, frame = cap.read()
+def process(frame, imshow=True):
     height, width, num_channels = frame.shape
     center = (height / 2, width / 2)
     if frame is None:
-      print("No image data")
-      break
+      return {"error": "No image data"}
     # Convert to Y,Cr,Cb color space
     img = cv2.cvtColor(frame, cv2.COLOR_BGR2YCR_CB)
     # Adaptive threshold
@@ -80,12 +78,6 @@ while(1):
     mask = np.zeros(frame.shape[:2], np.uint8)
     cv2.drawContours(mask, largestContourWithChildren, -1, 255, -1)
     avgColor = cv2.mean(frame, mask)
-    #print(avgColor)
-    # Create a 100x100 swatch
-    avgColorIm = np.array([[avgColor]*100]*100, np.uint8)
-    
-    # Draw largest contour in blue
-    cv2.drawContours(frame, largestContourWithChildren, -1, (255,0,0), 2)
     
     hull = cv2.convexHull(cnt,returnPoints = False)
     defects = cv2.convexityDefects(cnt,hull)
@@ -106,10 +98,12 @@ while(1):
         if distance_from_center < minDistFromCenter:
           minDistFromCenter = distance_from_center
           centralDefect = far
-        # Draw hull as a green line
-        cv2.line(frame, start, end, [0,255,0], 2)
-        # Color a circle at the far convexity defect. Black = minimal defect, red = big defect
-        cv2.circle(frame, far, 5, [0,0,d / 256], -1)
+        if imshow:
+          # Draw hull as a green line
+          cv2.line(frame, start, end, [0,255,0], 2)
+          # Color a circle at the far convexity defect. Black = minimal defect, red = big defect
+          r = float(d) / 30000 * 255
+          cv2.circle(frame, far, 5, [0,0,r], -1)
     
     # Find the palm
     left,top,w,h = cv2.boundingRect(cnt)
@@ -126,13 +120,31 @@ while(1):
           maxDist = d
           palmCenter = pt
 
-    cv2.circle(frame, palmCenter, int(maxDist), [0,0,255], 2)
+    if imshow:
+      # Create a 100x100 swatch
+      avgColorIm = np.array([[avgColor]*100]*100, np.uint8)
+      # Draw largest contour in blue
+      cv2.drawContours(frame, largestContourWithChildren, -1, (255,0,0), 2)
+      cv2.circle(frame, palmCenter, int(maxDist), [0,0,255], 2)
 
-#    cv2.imshow("skin", skin)
-    cv2.imshow("avg color", avgColorIm)
-    cv2.imshow("detection", frame)
+#     cv2.imshow("skin", skin)
+      cv2.imshow("avg color", avgColorIm)
+      cv2.imshow("detection", frame)
+
+    return {
+      "palm": {"x": palmCenter[0], "y": palmCenter[1]},
+      "skinColor": {"b": avgColor[0], "g": avgColor[1], "r": avgColor[2]}
+    }
+
+if __name__ == "__main__":
+  while(1):
+    ret, frame = cap.read()
+    s = time.time()
+    details = process(frame)
+    print(details)
+    print(time.time() - s)
     k = cv2.waitKey(20) & 0xff
     if k == 27:
-        break
-cap.release()
-cv2.destroyAllWindows()
+      break
+  cap.release()
+  cv2.destroyAllWindows()
