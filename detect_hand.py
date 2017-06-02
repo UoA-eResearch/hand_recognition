@@ -102,12 +102,12 @@ def process(frame, imshow=True):
           # Draw hull as a green line
           cv2.line(frame, start, end, [0,255,0], 2)
           # Color a circle at the far convexity defect. Black = minimal defect, red = big defect
-          r = float(d) / 30000 * 255
-          cv2.circle(frame, far, 5, [0,0,r], -1)
+          #r = float(d) / 30000 * 255
+          #cv2.circle(frame, far, 5, [0,0,r], -1)
     
     # Find the palm
     left,top,w,h = cv2.boundingRect(cnt)
-    maxDist = 0
+    palmRadius = 0
     palmCenter = None
     skip = 4
     
@@ -116,24 +116,45 @@ def process(frame, imshow=True):
         pt = (x,y)
         d = cv2.pointPolygonTest(cnt, pt, True)
         dFromCentralDefect = dist(pt, centralDefect)
-        if d > maxDist and dFromCentralDefect < 130:
-          maxDist = d
+        if d > palmRadius and dFromCentralDefect < 130:
+          palmRadius = d
           palmCenter = pt
 
+    # Find fingers
+    fingers = []
+    for i in range(defects.shape[0]):
+        # Indicies of the start, end, and far points, and the distance to the far point from the hull edge
+        s,e,f,d = defects[i,0]
+        start = tuple(cnt[s][0])
+        end = tuple(cnt[e][0])
+        far = tuple(cnt[f][0])
+        ds = dist(start, palmCenter)
+        de = dist(end, palmCenter)
+        df = dist(far, palmCenter)
+        d /= 256.0
+        if d > palmRadius / 2:
+          if ds < 130 and ds > 50:
+            fingers.append({"tip": {"x": start[0], "y": start[1]}, "web": {"x": far[0], "y": far[1]}, "d": d})
+            if imshow:
+              cv2.circle(frame, start, 5, [0,0,255], -1)
+    
     if imshow:
       # Create a 100x100 swatch
       avgColorIm = np.array([[avgColor]*100]*100, np.uint8)
       # Draw largest contour in blue
       cv2.drawContours(frame, largestContourWithChildren, -1, (255,0,0), 2)
-      cv2.circle(frame, palmCenter, int(maxDist), [0,0,255], 2)
-
+      # Draw red circle in palm center
+      cv2.circle(frame, palmCenter, int(palmRadius), [0,0,255], 2)
+      text = "{} fingers".format(len(fingers))
+      cv2.putText(frame, text, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 2)
 #     cv2.imshow("skin", skin)
       cv2.imshow("avg color", avgColorIm)
       cv2.imshow("detection", frame)
 
     return {
-      "palm": {"x": palmCenter[0], "y": palmCenter[1]},
-      "skinColor": {"b": avgColor[0], "g": avgColor[1], "r": avgColor[2]}
+      "palm": {"x": palmCenter[0], "y": palmCenter[1], "r": palmRadius},
+      "skinColor": {"b": avgColor[0], "g": avgColor[1], "r": avgColor[2]},
+      "fingers": fingers
     }
 
 if __name__ == "__main__":
