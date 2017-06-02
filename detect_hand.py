@@ -60,11 +60,11 @@ def heron(a, b, c):
   s = (a + b + c) / 2
   return (s*(s-a)*(s-b)*(s-c)) ** 0.5
 
-def process(frame, imshow=True):
+def process(frame, imshow=False):
     height, width, num_channels = frame.shape
     center = (height / 2, width / 2)
     if frame is None:
-      return {"error": "No image data"}
+      raise Exception("No image data")
     # Convert to Y,Cr,Cb color space
     img = cv2.cvtColor(frame, cv2.COLOR_BGR2YCR_CB)
     # Adaptive threshold
@@ -144,8 +144,8 @@ def process(frame, imshow=True):
         if ds < 130 and ds > 60:
           if d > palmRadius / 2:
             fingers.append({
-              "tip": {"x": start[0], "y": start[1]},
-              "web": {"x": far[0], "y": far[1]},
+              "tip": {"x": int(start[0]), "y": int(start[1])},
+              "web": {"x": int(far[0]), "y": int(far[1])},
               "d": d,
               "angle": angle,
               "distance_to_next_finger": se
@@ -218,7 +218,7 @@ if __name__ == "__main__":
   while(1):
     ret, frame = cap.read()
     s = time.time()
-    details = process(frame)
+    details = process(frame, imshow=True)
     print(details)
     print("Took {}s".format(time.time() - s))
     k = cv2.waitKey(20) & 0xff
