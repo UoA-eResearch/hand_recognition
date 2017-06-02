@@ -122,6 +122,7 @@ def process(frame, imshow=True):
 
     # Find fingers
     fingers = []
+    flat = False
     for i in range(defects.shape[0]):
         # Indicies of the start, end, and far points, and the distance to the far point from the hull edge
         s,e,f,d = defects[i,0]
@@ -131,12 +132,52 @@ def process(frame, imshow=True):
         ds = dist(start, palmCenter)
         de = dist(end, palmCenter)
         df = dist(far, palmCenter)
+        se = dist(start, end)
+        angle = 0
+        if de > ds:
+          angle = math.degrees(math.acos(ds/de))
+        else:
+          angle = math.degrees(math.acos(de/ds))
         d /= 256.0
-        if d > palmRadius / 2:
-          if ds < 130 and ds > 50:
-            fingers.append({"tip": {"x": start[0], "y": start[1]}, "web": {"x": far[0], "y": far[1]}, "d": d})
+        if ds < 130 and ds > 60:
+          if d > palmRadius / 2:
+            fingers.append({
+              "tip": {"x": start[0], "y": start[1]},
+              "web": {"x": far[0], "y": far[1]},
+              "d": d,
+              "angle": angle,
+              "distance_to_next_finger": se
+            })
             if imshow:
               cv2.circle(frame, start, 5, [0,0,255], -1)
+#              cv2.putText(frame, str(se), far, cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+          else:
+            flat = True
+    
+    # Detect gesture
+    gesture = "Unknown"
+    n = len(fingers)
+    if n == 0:
+      if flat:
+        gesture = "Flat palm"
+      else:
+        gesture = "Closed Fist"
+    elif n == 1:
+      if fingers[0]['angle'] > 63:
+        gesture = "Pointing"
+      else:
+        gesture = "Thumbs up"
+    elif n == 2:
+      if fingers[0]['angle'] < 18:
+        gesture = "Peace"
+      else:
+        gesture = "Gun"
+    elif n > 4:
+      avg_d = np.mean([f["d"] for f in fingers])
+      if avg_d < 40:
+        gesture = "Claw"
+      else:
+        gesture = "Open Palm"
     
     if imshow:
       # Create a 100x100 swatch
@@ -147,6 +188,7 @@ def process(frame, imshow=True):
       cv2.circle(frame, palmCenter, int(palmRadius), [0,0,255], 2)
       text = "{} fingers".format(len(fingers))
       cv2.putText(frame, text, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 2)
+      cv2.putText(frame, gesture, (50,100), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 2)
 #     cv2.imshow("skin", skin)
       cv2.imshow("avg color", avgColorIm)
       cv2.imshow("detection", frame)
@@ -154,7 +196,8 @@ def process(frame, imshow=True):
     return {
       "palm": {"x": palmCenter[0], "y": palmCenter[1], "r": palmRadius},
       "skinColor": {"b": avgColor[0], "g": avgColor[1], "r": avgColor[2]},
-      "fingers": fingers
+      "fingers": fingers,
+      "gesture": gesture
     }
 
 if __name__ == "__main__":
