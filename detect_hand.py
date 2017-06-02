@@ -178,6 +178,19 @@ def process(frame, imshow=True):
         gesture = "Claw"
       else:
         gesture = "Open Palm"
+
+    # Check for OK sign
+    if len(largestContourWithChildren) > 1:
+      for hole in largestContourWithChildren[1:]:
+        a = cv2.contourArea(hole)
+        M = cv2.moments(hole)
+        cx = int(M['m10']/M['m00'])
+        cy = int(M['m01']/M['m00'])
+        pt = (cx, cy)
+        dpc = dist(pt, palmCenter)
+        if dpc < palmRadius and a > 50:
+          print("a: {}, pt: {}, dpc: {}".format(a, pt, dpc))
+          gesture = "OK"
     
     if imshow:
       # Create a 100x100 swatch
@@ -206,7 +219,7 @@ if __name__ == "__main__":
     s = time.time()
     details = process(frame)
     print(details)
-    print(time.time() - s)
+    print("Took {}s".format(time.time() - s))
     k = cv2.waitKey(20) & 0xff
     if k == 27:
       break
