@@ -120,6 +120,8 @@ def process(frame, imshow=True):
           palmRadius = d
           palmCenter = pt
 
+    palmArea = math.pi * palmRadius ** 2
+
     # Find fingers
     fingers = []
     flat = False
@@ -188,8 +190,7 @@ def process(frame, imshow=True):
         cy = int(M['m01']/M['m00'])
         pt = (cx, cy)
         dpc = dist(pt, palmCenter)
-        if dpc < palmRadius and a > 50:
-          print("a: {}, pt: {}, dpc: {}".format(a, pt, dpc))
+        if dpc < palmRadius and a > palmArea / 10:
           gesture = "OK"
     
     if imshow:
