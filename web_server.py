@@ -5,8 +5,12 @@ import numpy as np
 import cv2
 import json
 from bottle import *
+from gevent.pywsgi import WSGIServer
+from geventwebsocket import WebSocketError
+from geventwebsocket.handler import WebSocketHandler
 
 BaseRequest.MEMFILE_MAX = 1e8
+app = Bottle()
 
 def read_image(binary_data):
   img_array = np.asarray(binary_data, dtype=np.uint8)
@@ -15,11 +19,11 @@ def read_image(binary_data):
     raise Exception('Unable to decode posted image!')
   return image_data
 
-@get('/')
+@app.get('/')
 def default_get():
     return static_file("index.html", ".")
 
-@post('/')
+@app.post('/')
 def process_image():
   try:
     if request.files.get('pic'):
@@ -38,9 +42,27 @@ def process_image():
     response.status = 500
     return {'error': str(e)}
 
+@app.route('/websocket')
+def handle_websocket():
+  wsock = request.environ.get('wsgi.websocket')
+  if not wsock:
+    abort(400, 'Expected WebSocket request.')
+
+  while True:
+    try:
+      message = wsock.receive()
+      if message:
+        print("Got message of len {}".format(len(message)))
+        image_data = read_image(message)
+        s = time.time()
+        data = detect_hand.process(image_data)
+        print("Processed in {}s".format(time.time() - s))
+        wsock.send(json.dumps(data))
+    except WebSocketError:
+      break
+
 port = int(os.environ.get('PORT', 8080))
-
-if __name__ == "__main__":
-  run(host='0.0.0.0', port=port, debug=True, server='gunicorn', workers=4)
-
-app = default_app()
+print("Starting server on http://localhost:{}".format(port))
+server = WSGIServer(("0.0.0.0", port), app,
+                    handler_class=WebSocketHandler)
+server.serve_forever()

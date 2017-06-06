@@ -4,7 +4,6 @@ import cv2
 import math
 import time
 
-cap = cv2.VideoCapture(0)
 lo = np.array([0,130,101])
 hi = np.array([198,155,148])
 
@@ -215,6 +214,7 @@ def process(frame, imshow=False):
     }
 
 if __name__ == "__main__":
+  cap = cv2.VideoCapture(0)
   while(1):
     ret, frame = cap.read()
     s = time.time()
