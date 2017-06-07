@@ -7,7 +7,7 @@
   <video id="video">Video stream not available.</video>
   <canvas style="position:absolute;left:0"></canvas>
   <script type="text/javascript">  
-    var processing = false;
+    var processing = true;
     var s = 0;
     var canvas = document.querySelector('canvas');
     var context = canvas.getContext('2d');
@@ -22,6 +22,10 @@
     var wsurl = protocol + location.host + path + "/websocket";
     console.log(wsurl);
     var ws = new WebSocket(wsurl);
+    ws.onopen = function() {
+      console.log("websocket connected");
+      processing = false;
+    };
     ws.onmessage = function (evt) {
         processing = false;
         console.log(performance.now() - s + "ms: Got response");
