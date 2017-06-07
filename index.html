@@ -24,6 +24,7 @@
     var ws = new WebSocket(wsurl);
     ws.onmessage = function (evt) {
         processing = false;
+        console.log(performance.now() - s + "ms: Got response");
         if (evt.data == "error") {
           console.error("Processing failure");
           return;
@@ -46,9 +47,29 @@
           context.arc(finger.tip.x, finger.tip.y, 2, 0, 2 * Math.PI, false);
           context.stroke();
         }
-        console.log("Took " + (performance.now() - s) + "ms");
+        console.log(performance.now() - s + "ms: Done");
     };
     
+    function dataURItoBlob(dataURI) {
+      // convert base64/URLEncoded data component to raw binary data held in a string
+      var byteString;
+      if (dataURI.split(',')[0].indexOf('base64') >= 0)
+          byteString = atob(dataURI.split(',')[1]);
+      else
+          byteString = unescape(dataURI.split(',')[1]);
+
+      // separate out the mime component
+      var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+
+      // write the bytes of the string to a typed array
+      var ia = new Uint8Array(byteString.length);
+      for (var i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+      }
+
+      return new Blob([ia], {type:mimeString});
+    }
+
     function takepicture(video) {
       // Write a frame to canvas
       var canvas = document.createElement('canvas');
@@ -57,10 +78,11 @@
       canvas.height = video.videoHeight;
       context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
       // Write the canvas to an image
-      console.log("canvas toDataURL");
+      console.log(performance.now() - s + "ms: canvas toDataURL");
       var durl = canvas.toDataURL();
-      ws.send(durl);
-      console.log("sent frame");
+      var blob = dataURItoBlob(durl);
+      ws.send(blob);
+      console.log(performance.now() - s + "ms: sent frame");
     }
 
     navigator.mediaDevices.getUserMedia({ audio: false, video: true })
@@ -74,7 +96,7 @@
         setInterval(function() {
           if (!processing) {
             processing = true;
-            console.log("Start");
+            console.log("0ms: Start");
             s = performance.now();
             takepicture(video);
           }
