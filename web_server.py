@@ -72,8 +72,9 @@ def handle_websocket():
     except:
       wsock.send("error")
 
-port = int(os.environ.get('PORT', 8080))
-print("Starting server on http://localhost:{}".format(port))
-server = WSGIServer(("0.0.0.0", port), app,
-                    handler_class=WebSocketHandler)
-server.serve_forever()
+if __name__ == "__main__":
+  port = int(os.environ.get('PORT', 8080))
+  print("Starting server on http://localhost:{}".format(port))
+  server = WSGIServer(("0.0.0.0", port), app,
+                      handler_class=WebSocketHandler)
+  server.serve_forever()
