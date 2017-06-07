@@ -71,6 +71,8 @@ def process(frame, imshow=False):
     # Crop out skin areas
     skin = cv2.inRange(img, lo, hi)
     contoursMatrix, hierarchy = findContours(skin)
+    if not contoursMatrix:
+      raise Exception("No contours")
     cnt, largestContourWithChildren = get_largest_contour_and_children(contoursMatrix, hierarchy)
     
     # get skin color

@@ -19,6 +19,12 @@ def read_image(binary_data):
     raise Exception('Unable to decode posted image!')
   return image_data
 
+def read_data_uri(uri):
+  encoded_data = uri.split(',')[1]
+  nparr = np.fromstring(encoded_data.decode('base64'), np.uint8)
+  img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+  return img
+
 @app.get('/')
 def default_get():
     return static_file("index.html", ".")
@@ -53,13 +59,18 @@ def handle_websocket():
       message = wsock.receive()
       if message:
         print("Got message of len {}".format(len(message)))
-        image_data = read_image(message)
+        if type(message) is bytearray:
+          image_data = read_image(message)
+        else:
+          image_data = read_data_uri(message)
         s = time.time()
         data = detect_hand.process(image_data)
         print("Processed in {}s".format(time.time() - s))
         wsock.send(json.dumps(data))
     except WebSocketError:
       break
+    except:
+      wsock.send("error")
 
 port = int(os.environ.get('PORT', 8080))
 print("Starting server on http://localhost:{}".format(port))
