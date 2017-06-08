@@ -19,7 +19,10 @@
     if (location.pathname != "/") {
       path = location.pathname;
     }
-    var wsurl = protocol + location.host + path + "/websocket";
+    if (!path.endsWith("/")) {
+      path += '/';
+    }
+    var wsurl = protocol + location.host + path + "websocket";
     console.log(wsurl);
     var ws = new WebSocket(wsurl);
     ws.onopen = function() {
