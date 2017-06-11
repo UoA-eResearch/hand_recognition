@@ -169,7 +169,10 @@ def process(frame, imshow=False):
       if fingers[0]['angle'] > 63:
         gesture = "Pointing"
       else:
-        gesture = "Thumbs up"
+        if fingers[0]['tip']['y'] < palmCenter[1]:
+          gesture = "Thumbs up"
+        else:
+          gesture = "Thumbs down"
     elif n == 2:
       if fingers[0]['angle'] < 18:
         gesture = "Peace"
