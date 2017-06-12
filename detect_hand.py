@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import math
 import time
+import sys
 
 lo = np.array([0,130,101])
 hi = np.array([198,155,148])
@@ -153,7 +154,7 @@ def process(frame, imshow=False):
             })
             if imshow:
               cv2.circle(frame, start, 5, [0,0,255], -1)
-#              cv2.putText(frame, str(se), far, cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+              cv2.putText(frame, str(int(ds)), start, cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
           else:
             flat = True
     
@@ -219,15 +220,27 @@ def process(frame, imshow=False):
     }
 
 if __name__ == "__main__":
-  cap = cv2.VideoCapture(0)
-  while(1):
-    ret, frame = cap.read()
+  if len(sys.argv) > 1:
+    # Process the given image argument
+    filename = sys.argv[1]
+    frame = cv2.imread(filename, cv2.CV_LOAD_IMAGE_COLOR)
+    frame = cv2.resize(frame, (640, 480))
     s = time.time()
     details = process(frame, imshow=True)
     print(details)
     print("Took {}s".format(time.time() - s))
-    k = cv2.waitKey(20) & 0xff
-    if k == 27:
-      break
-  cap.release()
+    cv2.waitKey(0)
+  else:
+    # Capture from the primary camera
+    cap = cv2.VideoCapture(0)
+    while(1):
+      ret, frame = cap.read()
+      s = time.time()
+      details = process(frame, imshow=True)
+      print(details)
+      print("Took {}s".format(time.time() - s))
+      k = cv2.waitKey(20) & 0xff
+      if k == 27:
+        break
+    cap.release()
   cv2.destroyAllWindows()
