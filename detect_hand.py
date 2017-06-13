@@ -224,7 +224,13 @@ if __name__ == "__main__":
     # Process the given image argument
     filename = sys.argv[1]
     frame = cv2.imread(filename, cv2.CV_LOAD_IMAGE_COLOR)
-    frame = cv2.resize(frame, (640, 480))
+    height, width, channels = frame.shape
+    if height > width:
+      # portrait
+      frame = cv2.resize(frame, (480, 640))
+    else:
+      # landscape
+      frame = cv2.resize(frame, (640, 480))
     s = time.time()
     details = process(frame, imshow=True)
     print(details)
