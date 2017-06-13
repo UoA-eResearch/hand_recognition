@@ -60,6 +60,9 @@ def heron(a, b, c):
   s = (a + b + c) / 2
   return (s*(s-a)*(s-b)*(s-c)) ** 0.5
 
+def get_angle(a, b, c):
+  return math.degrees(math.acos((a ** 2 + b ** 2 - c ** 2) / (2 * a * b)))
+
 def process(frame, imshow=False):
     height, width, num_channels = frame.shape
     center = (height / 2, width / 2)
@@ -100,12 +103,6 @@ def process(frame, imshow=False):
         if distance_from_center < minDistFromCenter:
           minDistFromCenter = distance_from_center
           centralDefect = far
-        if imshow:
-          # Draw hull as a green line
-          cv2.line(frame, start, end, [0,255,0], 2)
-          # Color a circle at the far convexity defect. Black = minimal defect, red = big defect
-          #r = float(d) / 30000 * 255
-          #cv2.circle(frame, far, 5, [0,0,r], -1)
     
     # Find the palm
     left,top,w,h = cv2.boundingRect(cnt)
@@ -136,15 +133,16 @@ def process(frame, imshow=False):
         ds = dist(start, palmCenter)
         de = dist(end, palmCenter)
         df = dist(far, palmCenter)
+        sf = dist(start, far)
+        ef = dist(end, far)
+        dcd = dist(start, centralDefect)
         se = dist(start, end)
-        angle = 0
-        if de > ds:
-          angle = math.degrees(math.acos(ds/de))
-        else:
-          angle = math.degrees(math.acos(de/ds))
+        angle = get_angle(sf, ef, se)
         d /= 256.0
-        if ds < 130 and ds > 60:
-          if d > palmRadius / 2:
+        if ds < palmRadius * 4 and ds > palmRadius * 2:
+          # Close to, but not too close to, the palm center
+          if d > palmRadius / 2 and d < palmRadius * 2:
+            # Reasonable large defect
             fingers.append({
               "tip": {"x": int(start[0]), "y": int(start[1])},
               "web": {"x": int(far[0]), "y": int(far[1])},
@@ -153,9 +151,13 @@ def process(frame, imshow=False):
               "distance_to_next_finger": se
             })
             if imshow:
-              cv2.circle(frame, start, 5, [0,0,255], -1)
-              cv2.putText(frame, str(int(ds)), start, cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+              cv2.circle(frame, start, 10, [0,0,255], 2)
+              cv2.circle(frame, end, 5, [0,0,255], -1)
+              cv2.circle(frame, far, 5, [0,0,255], -1)
+              cv2.line(frame, start, end, [0,255,0], 2)
+              cv2.putText(frame, str(int(angle)), start, cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
           else:
+            # Flat fingers have small defects
             flat = True
     
     # Detect gesture
@@ -167,7 +169,7 @@ def process(frame, imshow=False):
       else:
         gesture = "Closed Fist"
     elif n == 1:
-      if fingers[0]['angle'] > 63:
+      if fingers[0]['angle'] > 115:
         gesture = "Pointing"
       else:
         if fingers[0]['tip']['y'] < palmCenter[1]:
@@ -175,7 +177,7 @@ def process(frame, imshow=False):
         else:
           gesture = "Thumbs down"
     elif n == 2:
-      if fingers[0]['angle'] < 18:
+      if fingers[0]['angle'] < 90:
         gesture = "Peace"
       else:
         gesture = "Gun"
