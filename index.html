@@ -18,6 +18,8 @@
   <canvas></canvas>
   <script type="text/javascript">  
     var processing = true;
+    var video = document.querySelector('video');
+    var mediaStream;
     var s = 0;
     var canvas = document.querySelector('canvas');
     var context = canvas.getContext('2d');
@@ -102,36 +104,51 @@
       console.log(performance.now() - s + "ms: sent frame");
     }
 
-    navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: {
-        facingMode: "environment",
-        width: {
-          ideal: 640
-        },
-        height: {
-          ideal: 480
-        }
-      }
-    })
-    .then(function(mediaStream) {
-      var video = document.querySelector('video');
-      video.srcObject = mediaStream;
-      video.onloadedmetadata = function(e) {
-        video.play();
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        setInterval(function() {
-          if (!processing) {
-            processing = true;
-            console.log("0ms: Start");
-            s = performance.now();
-            takepicture(video);
+    function getcam() {
+      navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: "environment",
+          width: {
+            ideal: 640
+          },
+          height: {
+            ideal: 480
           }
-        }, 20);
-      };
-    })
-    .catch(function(err) { console.log(err.name + ": " + err.message); }); // always check for errors at the end
+        }
+      })
+      .then(function(mediaStream) {
+        video.srcObject = mediaStream;
+        video.onloadedmetadata = function(e) {
+          video.play();
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          window.mediaStream = mediaStream;
+        };
+      })
+      .catch(function(err) { console.log(err.name + ": " + err.message); }); // always check for errors at the end
+    }
+    getcam();
+    setInterval(function() {
+      if (!processing && (mediaStream && mediaStream.active)) {
+        processing = true;
+        console.log("0ms: Start");
+        s = performance.now();
+        takepicture(video);
+      }
+    }, 20);
+
+    window.onfocus = function () {
+      getcam();
+      console.log("cam on");
+    };
+
+    window.onblur = function () {
+      mediaStream.getTracks().forEach( (track) => {
+        track.stop();
+      });
+      console.log("cam off");
+    };
   </script>
 </body>
 </html>
