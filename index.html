@@ -2,10 +2,20 @@
 <html>
 <head>
   <title>Hand recognition</title>
+  <style>
+    html, body, video, canvas {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+  </style>
 </head>
 <body>
   <video id="video">Video stream not available.</video>
-  <canvas style="position:absolute;left:0"></canvas>
+  <canvas></canvas>
   <script type="text/javascript">  
     var processing = true;
     var s = 0;
