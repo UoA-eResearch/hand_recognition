@@ -135,7 +135,8 @@ def process(frame, imshow=False):
         df = dist(far, palmCenter)
         sf = dist(start, far)
         ef = dist(end, far)
-        dcd = dist(start, centralDefect)
+        if start[0] > width - 10 or start[0] < 10 or start[1] > height - 10 or start[1] < 10:
+          continue
         se = dist(start, end)
         angle = get_angle(sf, ef, se)
         d /= 256.0
