@@ -63,6 +63,12 @@ def heron(a, b, c):
 def get_angle(a, b, c):
   return math.degrees(math.acos((a ** 2 + b ** 2 - c ** 2) / (2 * a * b)))
 
+# Check if two circles intersect
+def circle_intersect(ca, cb):
+  d = dist(ca['center'], cb['center'])
+  r = ca['radius'] + cb['radius']
+  return d < r
+
 def process(frame, imshow=False):
     height, width, num_channels = frame.shape
     center = (height / 2, width / 2)
@@ -99,25 +105,44 @@ def process(frame, imshow=False):
         start = tuple(cnt[s][0])
         end = tuple(cnt[e][0])
         far = tuple(cnt[f][0])
-        distance_from_center = dist(far, center)
+        distance_from_center = dist(start, center)
         if distance_from_center < minDistFromCenter:
           minDistFromCenter = distance_from_center
-          centralDefect = far
+          centralDefect = start
     
     # Find the palm
     left,top,w,h = cv2.boundingRect(cnt)
-    palmRadius = 0
-    palmCenter = None
+    circles = []
     skip = 4
     
     for x in range(left, left+w, skip):
       for y in range(top, top+h, skip):
         pt = (x,y)
-        d = cv2.pointPolygonTest(cnt, pt, True)
-        dFromCentralDefect = dist(pt, centralDefect)
-        if d > palmRadius and dFromCentralDefect < 130:
-          palmRadius = d
-          palmCenter = pt
+        radius = cv2.pointPolygonTest(cnt, pt, True)
+        if radius > 10:
+          o = {'radius': radius, 'center': pt}
+          circles.append(o)
+
+    circles.sort(key=lambda x: x['radius'], reverse=True)
+    non_intersecting_circles = []
+    for ca in circles:
+      intersects = False
+      for cb in non_intersecting_circles:
+        if ca == cb or circle_intersect(ca, cb):
+          intersects = True
+          break
+      if not intersects:
+        non_intersecting_circles.append(ca)
+
+
+    minDist = 9999
+    for possiblePalm in non_intersecting_circles[:3]:
+      # Of the top 3 largest circles, which is the closest to the center?
+      d = dist(centralDefect, possiblePalm['center'])
+      if d < minDist:
+        minDist = d
+        palmCenter = possiblePalm['center']
+        palmRadius = possiblePalm['radius']
 
     palmArea = math.pi * palmRadius ** 2
 
@@ -207,11 +232,18 @@ def process(frame, imshow=False):
       # Draw largest contour in blue
       cv2.drawContours(frame, largestContourWithChildren, -1, (255,0,0), 2)
       # Draw red circle in palm center
+      for possiblePalm in non_intersecting_circles:
+        cv2.circle(frame, possiblePalm['center'], int(possiblePalm['radius']), [255,0,255], 2)
       cv2.circle(frame, palmCenter, int(palmRadius), [0,0,255], 2)
       text = "{} fingers".format(len(fingers))
       cv2.putText(frame, text, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 2)
       cv2.putText(frame, gesture, (50,100), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 2)
+      d = dist(palmCenter, centralDefect)
+      cv2.putText(frame, str(int(d)), centralDefect, cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 2)
 #     cv2.imshow("skin", skin)
+      cv2.imshow("y", img[:,:,0])
+      cv2.imshow("cr", img[:,:,1])
+      cv2.imshow("cb", img[:,:,2])
       cv2.imshow("avg color", avgColorIm)
       cv2.imshow("detection", frame)
 
