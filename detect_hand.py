@@ -178,7 +178,7 @@ def process(frame, imshow=False):
         else:
           gesture = "Thumbs down"
     elif n == 2:
-      if fingers[0]['angle'] < 90:
+      if fingers[0]['angle'] < 85:
         gesture = "Peace"
       else:
         gesture = "Gun"
